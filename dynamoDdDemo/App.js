@@ -30,7 +30,7 @@
  import SplashScreen from 'react-native-splash-screen';
  import CodePushUpdaterView from './src/components/codePushUpdaterView'
  import { getDataFromCachedWithKey } from './src/module/cacheData';
-
+ import * as AWS from 'aws-sdk'
  
  class App extends Component<Props> {
    
@@ -47,8 +47,90 @@
    async componentDidMount() 
    {
      
+    // AWS.config.update({endpoint: "https://dynamodb.us-east-1.amazonaws.com"});
     
- 
+    AWS.config.update({
+      accessKeyId: 'AKIA5DH27WQ6JFD4S3HK', secretAccessKey: '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', region: 'us-east-1'
+    });
+
+    var docClient = new AWS.DynamoDB.DocumentClient();
+
+    var table = "Movies";
+    
+    var year = 2016;
+    var title = "The Big New Movie";
+    
+    var params = {
+        TableName:table,
+        Item:{
+            "year": year,
+            "title": title,
+            "info":{
+                "plot": "Nothing happens at all.",
+                "rating": 0
+            }
+        }
+    };
+    
+    console.log("Adding a new item...");
+    docClient.put(params, function(err, data) {
+        if (err) {
+            console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
+        } else {
+            console.log("Added item:", JSON.stringify(data, null, 2));
+        }
+    });
+
+    console.log("Querying for movies from 1985.");
+
+var params = {
+    TableName : "Movies",
+    KeyConditionExpression: "#yr = :yyyy",
+    ExpressionAttributeNames:{
+        "#yr": "year"
+    },
+    ExpressionAttributeValues: {
+        ":yyyy": 2017
+    }
+};
+
+docClient.query(params, function(err, data) {
+    if (err) {
+        console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+    } else {
+        console.log("Query succeeded.");
+        console.log(JSON.stringify(data))
+        data.Items.forEach(function(item) {
+            console.log(" -", item.year + ": " + item.title);
+        });
+    }
+});
+
+  //   var dynamodb = new AWS.DynamoDB();
+  //   var params = {
+  //     TableName : "Movies",
+  //     KeySchema: [       
+  //         { AttributeName: "year", KeyType: "HASH"},  //Partition key
+  //         { AttributeName: "title", KeyType: "RANGE" }  //Sort key
+  //     ],
+  //     AttributeDefinitions: [       
+  //         { AttributeName: "year", AttributeType: "N" },
+  //         { AttributeName: "title", AttributeType: "S" }
+  //     ],
+  //     ProvisionedThroughput: {       
+  //         ReadCapacityUnits: 10, 
+  //         WriteCapacityUnits: 10
+  //     }
+  // };
+  
+  // dynamodb.createTable(params, function(err, data) {
+  //     if (err) {
+  //         console.error("Unable to create table. Error JSON:", JSON.stringify(err, null, 2));
+  //     } else {
+  //         console.log("Created table. Table description JSON:", JSON.stringify(data, null, 2));
+  //     }
+  // });
+
      if (Platform.OS == "android" && DeviceInfo.getBundleId() == AppConstants.StringLiterals.strBundleKeyDev_Android) {
        setLiveFlag(false)
      } else if (Platform.OS == "ios" && DeviceInfo.getBundleId() == AppConstants.StringLiterals.strBundleKeyDev_iOS) {
